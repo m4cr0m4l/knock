@@ -10,3 +10,8 @@ options:
   -f, --tcpflags        customize TCP flags
   -h, --help            this help
 ```
+
+## Donations
+If you find this utility helpful and would like to support further development, consider making a [donation](https://github.com/m4cr0m4l).
+
+Thank you for your contribution!
