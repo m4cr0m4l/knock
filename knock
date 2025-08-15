@@ -1,0 +1,95 @@
+#!/bin/sh
+
+NMAP_OPTIONS="-v0 -Pn --host-timeout 100 --max-retries 0"
+DEFAULT_PROTO="tcp"
+
+usage() {
+	printf '%s\n' "\
+usage: ${0##/*} [options] <host> <port[:proto]> [port[:proto]] ...
+options:
+  -u, --udp		make all ports hits use UDP (default is TCP)
+  -d, --delay <t>	wait <t> seconds between port hits
+  -f, --tcpflags	customize TCP flags
+  -h, --help		this help
+"
+}
+
+print_error() {
+	printf '\e[1;38;5;1m%s\e[m\n' "$1" >&2
+}
+
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		-h | --h | --he | --hel | --help)
+			usage
+			exit 0
+		;;
+
+		-u | --udp)
+			DEFAULT_PROTO="udp"
+		;;
+
+		-d | --delay)
+			shift
+			DELAY="--scan-delay $1"
+		;;
+
+		-f | --tcpflags)
+			shift
+			TCPFLAGS="--scanflags $1"
+		;;
+
+		-*)	 
+			print_error "Unknown option: $1"
+			usage
+			exit 1
+		;;
+
+		*)
+			break
+		;;
+	esac
+	shift
+done
+
+if [ $# -lt 2 ]; then  
+	usage
+	exit 1
+fi
+
+if [ "$(id -u)" -ne 0 ]; then  
+	print_error "Permission denied"
+	exit 1
+fi
+
+host="$1"
+shift
+for knock in "$@"; do
+	port="${knock%:*}"
+	proto="${knock#*:}"
+
+	case "$proto" in
+		tcp)
+			technique="-sS $TCPFLAGS"
+		;;
+
+		udp)
+			technique="-sU"
+		;;
+
+		*)
+			case "$DEFAULT_PROTO" in
+				tcp)
+					technique="-sS $TCPFLAGS"
+				;;
+
+				udp)
+					technique="-sU"
+				;;
+			esac
+		;;
+	esac
+
+	nmap $NMAP_OPTIONS $DELAY $technique -p $port $host 2> /dev/null
+done
